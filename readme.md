@@ -1,4 +1,4 @@
-# Phenlogy App
+# Phenology App
 Android app and corresponding server to track and view the changing appearance, _phenology_, of vegetation, trees in particular. Take a picture of a tree, later return to the picture location using the built in map, take a new picture of the same tree overlaid on top of the previous picture and view the resulting animation.
 
 Install app:
