@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Test photoserver</title>
+    <meta name="description" content="Locophoto and timelapse app">
+    <meta http-equiv="content-type" content="text/html; charset=UTF8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- link rel="stylesheet" href="http://openlayers.org/en/v3.11.2/css/ol.css" type="text/css"> -->
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" type="text/css">
+
+    <script src="openlayers/v3.11.2/build/ol.js"></script>
+    <script src="proj4js/2.3.6/proj4.js"></script>
+
+    <script src="config.js"></script>
+    <script src="validateuser.js"></script>
+    <script src="photoapp.js"></script>
+
+
+<style>
+  #map { width: 100px; height: 100px;}
+  #testphoto { width: 200px; }
+  .failed { color: white; background-color: red; }
+  .fa-exclamation:before { color: red; }
+  .fa-check:before { color: green; }
+</style>
+
+<script>
+
+// helper: create '<li>result</li>' node
+function resultOkNode(resultText)
+{
+  var node = document.createElement("li");                 // Create a <li> node
+  var subnode = document.createElement("i"); // create a <i> node for font-awesome bullet support
+  var textnode = document.createTextNode(resultText);         // Create a text node
+  subnode.classList.add("fa","fa-li","fa-check");
+  node.appendChild(subnode);
+  node.appendChild(textnode);
+  return node;
+}
+
+function resultFailedNode(resultText)
+{
+  var node = resultOkNode(resultText);
+  var subnode = node.childNodes[0];
+  subnode.classList.remove("fa-check");
+  subnode.classList.add("fa-exclamation");
+  node.classList.add("failed");
+  return node;
+}
+
+// helper: convert image to base64 data
+function getBase64Image(img) {
+    // Create an empty canvas element
+    var canvas = document.createElement("canvas");
+    canvas.width = img.width;
+    canvas.height = img.height;
+
+    // Copy the image contents to the canvas
+    var ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+
+    // Get the data-URL formatted image
+    // Firefox supports PNG and JPEG. You could check img.src to
+    // guess the original format, but be aware the using "image/jpg"
+    // will re-encode the image.
+    var dataURL = canvas.toDataURL("image/jpeg");
+
+    return dataURL.replace(/^data:image\/(png|jpg|jpeg);base64,/, "");
+}
+
+// helper
+function checkImageOnServer(url, callback)
+{
+  var finished = false;
+  var img = new Image();
+  img.onload = function () {
+    finished = true;
+    callback(null, "image exists");
+  }
+  img.onerror = function() {
+    finished = true;
+    callback(true, "photo not available on server ("+url+")");
+  }
+  img.src = url + "?" + new Date().getTime(); // append query string to skip cache
+  setTimeout(function() {
+    if (!finished) {
+      callback(true, "photo availabilty unknown or timeout");
+    }
+  }, 5000);
+}
+
+var featurecount = 0;
+var myphotocount = 0;
+var mytestfunctions = [
+
+// login
+function login(prevresult, callback)
+{
+  if (localStorage) {
+    if (!localStorage.hash || localStorage.hash == '') {
+      callback(true, "not logged in");
+    } else {
+      callback(null, "logged in");
+    }
+  } else {
+    callback(true, "no localstorage");
+  }
+},
+
+function checkvalidation1(prevresult, callback) {
+  validateuser(21817, function(err, result) {
+    if (err) {
+      if (err.indexOf("wrong code") >= 0) {
+        callback(false, "checkvalidation denied wrong code: " + err);
+      } else {
+        callback(true, "checkvalidation:" + err);
+      }
+    } else {
+      callback(true, "checkvalidation accepted invalid code");
+    }
+  })
+},
+
+function checkvalidation2(prevresult, callback) {
+  validateuser(21818, function(err, result) {
+    if (err) {
+      callback(true, "checkvalidation: " + err);
+    } else {
+      callback(false, "checkvalidation: " + result);
+    }
+  })
+},
+
+
+// getphotos 1
+function getphotos1(prevresult, callback)
+{
+  loadmap();
+  var Photolayer = updatephotos();
+  // result should be ready within 10 secs
+  var check = 10;
+  function checklayer()
+  {
+    //console.log("checking..." + check);
+    if (check > 0) {
+      check--;
+      featurecount = Photolayer.getSource().getFeatures().length;
+      if (featurecount > 0) {
+        callback(false, "updatephotos got " + featurecount + " features");
+      } else {
+        setTimeout(checklayer, 1000);
+      }
+    } else {
+      // timed out
+      callback(true, "updatephotos did not receive any features");
+    }
+  }
+  checklayer();
+},
+
+
+// uploadphoto
+function uploadphoto(prevresult, callback)
+{
+  var img = new Image();
+  img.src = document.querySelector('#testphoto').src;
+  uploadphotodata(getBase64Image(img), 0, function (err, result){
+    if (err) {
+      callback (true, "upload failed: " + result);
+    } else {
+      callback(false, "upload succes: " + result);
+    }
+  });
+},
+
+// getphotos 2
+function getphotos2(prevresult, callback)
+{
+  var Photolayer = updatephotos();
+  // result should be ready within 10 secs
+  var check = 10;
+  function checklayer()
+  {
+    //console.log("checking..." + check);
+    if (check > 0) {
+      check--;
+      var featurecount2 = Photolayer.getSource().getFeatures().length;
+      if (featurecount2 > featurecount) {
+        callback(false, "updatephotos got more (" + featurecount2 + ") features");
+      } else {
+        setTimeout(checklayer, 1000);
+      }
+    } else {
+      // timed out
+      callback (true, "updatephotos did not receive any features");
+    }
+  }
+  checklayer();
+},
+
+// getmyphotos
+function getmyphotos(prevresult, callback)
+{
+  getMyPhotos(function (err, result){
+    if (err) {
+      callback(true, "getMyPhotos failed: " + result);
+    } else {
+      var photolist = JSON.parse(result);
+      if (photolist.length > 0) {
+        myphotocount = photolist.length;
+        callback(false, "getMyPhotos ok, # of photos: " + photolist.length, photolist[photolist.length-1]);
+      } else {
+        callback(false, "getMyPhotos ok, # of photos: " + photolist.length);
+      }
+    }
+  })
+},
+
+// check if photos reachable on server
+function checkphotoonserver(photo, callback)
+{
+  if (photo) {
+    checkImageOnServer(server + '/uploads/' + photo.filename, function (err, message) {
+      if (err) {
+        callback(true, message);
+      } else {
+        callback(false, "photo available on server", photo);
+      }
+    });
+  } else {
+    callback(true, "photo download skipped, no photo available");
+  }
+},
+
+function uploadsecondphoto(photo, callback)
+{
+  if (photo) {
+    var img = new Image();
+    var finished = false;
+    img.onload = function () {
+      finished = true;
+      uploadphotodata(getBase64Image(img), photo.id, function (err, result){
+        if (err) {
+          callback (true, "second upload failed: " + result, photo);
+        } else {
+          callback(false, "second upload succes: " + result, photo);
+        }
+      });
+    }
+    img.onerror = function() {
+      finished = true;
+      callback(true, "failed to load second photo");
+    }
+    img.src = "test2.jpg"
+    setTimeout(function() {
+      if (!finished) {
+        callback(true, "test photo not available or timeout");
+      }
+    }, 5000);
+  } else {
+    callback(true, "second photo upload skipped, first photo not available");
+  }
+},
+
+// getmyphotos2
+function getmyphotos2(photo, callback)
+{
+  getMyPhotos(function (err, result){
+    if (err) {
+      callback(true, "getMyPhotos failed: " + result);
+    } else {
+      var photolist = JSON.parse(result);
+      if (photolist.length > myphotocount) {
+        callback(false, "getMyPhotos ok, # of photos increased " + photolist.length + " > " + myphotocount, photolist.slice(photolist.length-2));
+      } else {
+        callback(true, "getMyPhotos failed, # of photos not increased: " + photolist.length + " <= " + myphotocount);
+      }
+    }
+  })
+},
+
+function waitForAnimation(photos, callback)
+{
+  if (photos) {
+    setTimeout(function(){callback(false, "wait for animation", photos);}, 5000);
+  } else {
+    callback(true, "wait for animation skipped, no photos available");
+  }
+},
+
+function checkanimation(photos, callback)
+{
+  if (photos) {
+    var extensionpos = photos[0].filename.lastIndexOf('.');
+    var animationurl = server + '/uploads/' + photos[0].filename.substr(0, extensionpos) + ".gif";
+
+    checkImageOnServer(animationurl, function (err, result){
+      if (err) {
+        callback(true, "animation not on server, " + animationurl, photos);
+      } else {
+        callback (false, "animation exists, " + animationurl, photos);
+      }
+    });
+  } else {
+    callback(true, "animation skipped, no photos available")
+  }
+},
+
+// deletephotos, delete newest two photos
+function deletephotos(photos, callback)
+{
+  if (photos) {
+    deletePhoto(photos[0], function (err, result1) {
+        if (err) {
+          callback(true, "deletePhoto: " + result1, photos);
+        } else {
+          deletePhoto(photos[1], function (err, result2){
+            if (err) {
+              callback(true, "deletePhoto: " + result2, photos);
+            } else {
+              callback(false, "deletePhoto: " + result1 + ", " + result2, photos);
+            }
+          });
+        }
+    });
+  } else {
+    callback(true, "deletePhoto: skipped, no photo info available");
+  }
+},
+
+// check if photo removed from server
+function checkphotonotonserver(photos, callback)
+{
+  if (photos) {
+    checkImageOnServer(server + '/uploads/' + photos[0].filename, function(err, message){
+      if (err) {
+        // photo removed as expected
+        checkImageOnServer(server + '/uploads/' + photos[1].filename, function(err, message) {
+          if (err) {
+            //photo removed as expected
+            callback(false, "photo urls ("+photos[0].filename+", " + photos[1].filename + ") no longer accessible on server", photos);
+          } else {
+            callback(true, "photo " + photos[1].filename + " still accessible on server", photos);
+          }
+        });
+      } else {
+        callback(true, "photo " + photos[0].filename + " still accessible on server", photos);
+      }
+    });
+  } else {
+    callback(true, "check photo removal skipped, no photos available");
+  }
+},
+
+function checkanimation2(photos, callback)
+{
+  if (photos) {
+    var extensionpos = photos[0].filename.lastIndexOf('.');
+    var animationurl = server + '/uploads/' + photos[0].filename.substr(0, extensionpos) + ".gif";
+
+    checkImageOnServer(animationurl, function (err, result){
+      if (err) {
+        callback(false, "animation not on server, " + animationurl, photos);
+      } else {
+        callback (true, "animation still exists, " + animationurl, photos);
+      }
+    });
+  } else {
+    callback(true, "animation skipped, no photos available")
+  }
+}
+
+
+]; // testfunctions
+
+
+var TestSet = function(outputselector) {
+    var self = this;
+    this.output = document.querySelector(outputselector);
+    this.testfunctions = mytestfunctions;
+    this.testall = function () {
+        var test = function (index, prevresult) {
+          if (index < self.testfunctions.length) {
+            console.log("index: " + index + ", args: " + prevresult);
+            self.testfunctions[index](prevresult, function(err, message, newresult){
+              if (err) {
+                console.log("function failed, msg: " + message);
+                self.output.appendChild(resultFailedNode(message));
+                test(index+1, newresult);
+              } else {
+                self.output.appendChild(resultOkNode(message));
+                console.log("function success, msg: " + message);
+                test(index+1, newresult);
+              }
+            });
+          }
+        }
+        test(0);
+    };
+}
+
+function test()
+{
+  var testSet = new TestSet('#result');
+  testSet.testall();
+}
+
+</script>
+</head>
+<body onload="test()">
+  <div><img id="testphoto" src="test.jpg" /></div>
+  <div id="map"></div>
+  <div>
+    <ul id="result" class="fa-ul">
+    </ul>
+  </div>
+</body>
+</html>

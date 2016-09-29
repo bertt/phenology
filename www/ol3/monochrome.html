@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Locophoto</title>
+<meta name="description" content="Locophoto and timelapse app">
+<meta http-equiv="content-type" content="text/html; charset=UTF8">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<link rel="stylesheet" href="http://openlayers.org/en/v3.11.2/css/ol.css" type="text/css">
+  <style>
+  .button {
+    width: 40px;
+    height: 40px;
+    background: #aaa;
+    border-radius: 100%;
+    box-sizing: border-box;
+    outline: none;
+    padding: 8px;
+    position: relative;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    -webkit-user-select: none;
+    user-select: none;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    display: inline-block;
+
+    cursor: pointer;
+  }
+  .icon {
+    width: 24px;
+    height: 24px;
+    background: transparent;
+    fill: white;
+  }
+  .button:hover {
+    background: orange;
+  }
+  .button:active {
+    background: orange;
+    box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+  }
+  .active {
+    background: orange;
+  }
+  .white {
+    background: white;
+  }
+  #map {
+  	height: 100%;
+  	position: absolute;
+  	overflow: hidden;
+  	left: 0px;
+  	right: 0px;
+  	bottom: 0px;
+  	top: 0px;
+  }
+  #camerabutton {
+    position: fixed;
+    bottom: 10px;
+    right: 10px;
+  }
+  #camera-altbutton {
+    position: fixed;
+    bottom: 10px;
+    right: 60px;
+  }
+  #camera-frontbutton {
+    position: fixed;
+    bottom: 10px;
+    right: 110px;
+  }
+  #camera-rearbutton {
+    position: fixed;
+    bottom: 10px;
+    right: 160px;
+  }
+  #add-a-photobutton {
+    position: fixed;
+    bottom: 10px;
+    right: 210px;
+  }
+  #add-to-photosbutton {
+    position: fixed;
+    bottom: 10px;
+    right: 260px;
+  }
+  #my-locationbutton {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+  }
+  #infobutton {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+  }
+  #info-outlinebutton {
+    position: fixed;
+    top: 10px;
+    left: 60px;
+  }
+  #helpbutton {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+  }
+  #help-outlinebutton {
+    position: fixed;
+    top: 10px;
+    right: 60px;
+  }
+  #infobox {
+    position: fixed;
+    top: 60px;
+    left: 10px;
+    background-color: white;
+    color: blue;
+  }
+  </style>
+  <script src="http://openlayers.org/en/v3.11.2/build/ol.js"></script>
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/proj4js/2.3.6/proj4.js"></script>
+  <script>
+  proj4.defs('EPSG:28992', '+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000 +ellps=bessel +towgs84=565.417,50.3319,465.552,-0.398957,0.343988,-1.8774,4.0725 +units=m +no_defs');
+
+  // calculate distance in km between two lon/lat pairs
+  Number.prototype.toRad = function() { // helper
+    return this * Math.PI / 180;
+  }
+  function calculateDistance(pos1, pos2) {
+    var R = 6371; // km
+    var dLon = (pos2[0] - pos1[0]).toRad();
+    var dLat = (pos2[1] - pos1[1]).toRad();
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(pos1[1].toRad()) * Math.cos(pos2[1].toRad()) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    var d = R * c;
+    return d;
+  }
+
+
+  var loadmap = function() {
+
+  	var proj28992 = ol.proj.get('EPSG:28992');
+
+  	proj28992.setExtent([-285401.920, 22598.080, 595401.920, 903401.920]); // nltilingschema
+
+  	var projectionExtent = proj28992.getExtent();
+  	var size = ol.extent.getWidth(projectionExtent) / 256;
+  	var resolutions = new Array(16);
+  	var matrixIds = new Array(16);
+  	for (var z = 0; z < 16; z++) {
+  		resolutions[z] = size / Math.pow(2, z);
+  		if (z < 10) {
+  			matrixIds[z] = '0' + z;
+  		} else {
+  			matrixIds[z] = '' + z;
+  		}
+  	}
+
+    var OpenStreetMapLayer = new ol.layer.Tile ({
+      source: new ol.source.OSM()
+    });
+
+    // turn OSM into monochrome background map
+    OpenStreetMapLayer.on('postcompose', function(event) {
+      var context = event.context;
+      if (!context) return;
+      var canvas = context.canvas;
+      if (!canvas) return;
+      var image = context.getImageData(0, 0, canvas.width, canvas.height);
+      var data = image.data;
+      for (var i = 0, ii = data.length; i < ii; i += 4) {
+        if (data[i] != 181 || data[i + 1] != 208 || data[i+2] != 208) {
+          data[i] = data[i + 1] = data[i + 2] = (3 * data[i] + 4 * data[i + 1] + data[i + 2]) / 8;
+        }
+      }
+      context.putImageData(image, 0, 0);
+    });
+
+  	var layers = [
+  		OpenStreetMapLayer
+  	];
+  	var map = new ol.Map({
+  		layers: layers,
+  		target: 'map',
+  		view: new ol.View({
+  			projection: 'EPSG:3857',
+  			center: ol.proj.transform([4.913024, 52.34223], 'EPSG:4326', 'EPSG:3857'), //Geodan Amsterdam
+  			zoom: 11
+  		})
+  	});
+
+    var _curtime = null;
+    var _lastPos = null;
+    var _lastTime = null;
+    var _distance = null;
+    var _totaldistance = null;
+    var _curposition = null;
+    function updatePosition(position) {
+			//if (!self.me) return; // only update position if we have a valid user
+
+      var elem = document.querySelector("#infobox");
+      elem.innerHTML = JSON.stringify(navigator.connection);
+
+      console.log(navigator.connection);
+			var curposition = [position.coords.longitude, position.coords.latitude];
+			_curposition = curposition;
+			var curtime = new Date().getTime();
+			//self.curtime = curtime;
+      _curtime = curtime;
+
+			if(!_lastPos) {
+				_lastPos = curposition;
+				_lastTime = curtime;
+				return;
+			}
+
+			_distance = calculateDistance(_lastPos, curposition);
+			_totaldistance += _distance;
+
+			if (_distance >= 0.010) { // only update speed if distance >= 10m
+				_speed = _distance / ((curtime - _lastTime) / 3600000); // km/h
+				_lastPos = curposition;
+				_lastTime = curtime;
+			}
+    }
+    function positionerror(e){
+        console.warn('Position error: ',e);
+    }
+    var navoptions = {
+        enableHighAccuracy:true
+        //timeout: 10000, //max poll for 10 secs
+    };
+    navigator.geolocation.getCurrentPosition(updatePosition,positionerror,navoptions);
+    setInterval(function(){
+      navigator.geolocation.getCurrentPosition(updatePosition,positionerror,navoptions);
+    }, 10000)
+  }
+  </script>
+</head>
+<body class="white" onload="loadmap();">
+<!-- definition of icons -->
+<svg style="display: none;">
+<symbol id="my-location" viewBox="0 0 24 24"><path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"></path></symbol>
+<symbol id="add-a-photo" viewBox="0 0 24 24"><path d="M3 4V1h2v3h3v2H5v3H3V6H0V4h3zm3 6V7h3V4h7l1.83 2H21c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V10h3zm7 9c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-3.2-5c0 1.77 1.43 3.2 3.2 3.2s3.2-1.43 3.2-3.2-1.43-3.2-3.2-3.2-3.2 1.43-3.2 3.2z"/></symbol>
+<symbol id="add-to-photos" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z"/></symbol>
+<symbol id="info" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></symbol>
+<symbol id="info-outline" viewBox="0 0 24 24"><path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z"/></symbol>
+<symbol id="camera-front" viewBox="0 0 24 24"><path d="M10 20H5v2h5v2l3-3-3-3v2zm4 0v2h5v-2h-5zM12 8c1.1 0 2-.9 2-2s-.9-2-2-2-1.99.9-1.99 2S10.9 8 12 8zm5-8H7C5.9 0 5 .9 5 2v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zM7 2h10v10.5c0-1.67-3.33-2.5-5-2.5s-5 .83-5 2.5V2z"/></symbol>
+<symbol id="camera-rear" viewBox="0 0 24 24"><path d="M10 20H5v2h5v2l3-3-3-3v2zm4 0v2h5v-2h-5zm3-20H7C5.9 0 5 .9 5 2v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zm-5 6c-1.11 0-2-.9-2-2s.89-2 1.99-2 2 .9 2 2C14 5.1 13.1 6 12 6z"/></symbol>
+<symbol id="camera" viewBox="0 0 24 24"><path d="M9.4 10.5l4.77-8.26C13.47 2.09 12.75 2 12 2c-2.4 0-4.6.85-6.32 2.25l3.66 6.35.06-.1zM21.54 9c-.92-2.92-3.15-5.26-6-6.34L11.88 9h9.66zm.26 1h-7.49l.29.5 4.76 8.25C21 16.97 22 14.61 22 12c0-.69-.07-1.35-.2-2zM8.54 12l-3.9-6.75C3.01 7.03 2 9.39 2 12c0 .69.07 1.35.2 2h7.49l-1.15-2zm-6.08 3c.92 2.92 3.15 5.26 6 6.34L12.12 15H2.46zm11.27 0l-3.9 6.76c.7.15 1.42.24 2.17.24 2.4 0 4.6-.85 6.32-2.25l-3.66-6.35-.93 1.6z"/></symbol>
+<symbol id="camera-alt" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></symbol>
+<symbol id="help" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></symbol>
+<symbol id="help-outline" viewBox="0 0 24 24"><path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"/></symbol>
+</svg>
+<div id="map"></div>
+<span id="my-locationbutton" class="button" title="show your location in center of map">
+<svg class="icon"><use xlink:href="#my-location" /></svg>
+</span>
+<span id="camerabutton" class="button" title="camera">
+<svg class="icon"><use xlink:href="#camera" /></svg>
+</span>
+<span id="camera-altbutton" class="button" title="camera alt">
+<svg class="icon"><use xlink:href="#camera-alt" /></svg>
+</span>
+<span id="add-a-photobutton" class="button" title="add a photo">
+<svg class="icon"><use xlink:href="#add-a-photo" /></svg>
+</span>
+<span id="add-to-photosbutton" class="button" title="add to photos">
+<svg class="icon"><use xlink:href="#add-to-photos" /></svg>
+</span>
+<span id="infobutton" class="button active" title="info">
+<svg class="icon"><use xlink:href="#info" /></svg>
+</span>
+<span id="info-outlinebutton" class="button" title="info">
+<svg class="icon"><use xlink:href="#info-outline" /></svg>
+</span>
+<span id="helpbutton" class="button" title="help">
+<svg class="icon"><use xlink:href="#help" /></svg>
+</span>
+<span id="help-outlinebutton" class="button" title="help outline">
+<svg class="icon"><use xlink:href="#help-outline" /></svg>
+</span>
+<span id="camera-frontbutton" class="button" title="camera front">
+<svg class="icon"><use xlink:href="#camera-front" /></svg>
+</span>
+<span id="camera-rearbutton" class="button" title="camera rear">
+<svg class="icon"><use xlink:href="#camera-rear" /></svg>
+</span>
+<span id="infobox"></span>
+</body>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="format-detection" content="telephone=no" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <!-- WARNING: for iOS 7, remove the width=device-width and height=device-height attributes. See https://issues.apache.org/jira/browse/CB-4323 -->
+        <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+        <title>Phenology</title>
+        <link rel="icon" href="favicon.ico">
+        <link rel="stylesheet" href="ol3/openlayers/v3.11.2/css/ol.css" type="text/css">
+        <link rel="stylesheet" href="ol3/bootstrap.min.css" type="text/css">
+        <link href="ol3/jumbotron-narrow.css" rel="stylesheet">
+
+    <style>
+    .img-responsive {
+        margin: 0 auto;
+    }
+		</style>
+    <script type="text/javascript" src="cordova.js"></script>
+    <script src="ol3/openlayers/v3.11.2/build/ol.js"></script>
+    <script>
+    if (typeof cordova != "undefined") {
+      // app version
+      document.addEventListener('deviceready', function() {
+        // device is ready, check if permissions are set
+        var permissions = cordova.plugins.permissions;
+
+        var errorCallback = function() {
+          console.warn('Location permission is not turned on');
+          setTimeout(function(){window.location= "ol3/index.html"}, 500);
+        }
+
+        var checkPermissionCoarseLocationCallback = function(status){
+          if (!status.hasPermission) {
+            errorCallback();
+          } else {
+            // all permissions granted
+            setTimeout(function(){window.location= "ol3/index.html"}, 2000);
+          }
+        }
+
+        var checkPermissionFineLocationCallback = function(status) {
+          if(!status.hasPermission) {
+
+            permissions.requestPermission(
+              permissions.ACCESS_FINE_LOCATION, function(status) {
+                if(!status.hasPermission) {
+                  errorCallback();
+                } else {
+                  permissions.requestPermission(permissions.ACCESS_COARSE_LOCATION, checkPermissionCoarseLocationCallback)
+                }
+              },
+              errorCallback);
+          } else {
+            permissions.requestPermission(permissions.ACCESS_COARSE_LOCATION, checkPermissionCoarseLocationCallback)
+          }
+        }
+        permissions.hasPermission(permissions.ACCESS_FINE_LOCATION, checkPermissionFineLocationCallback, null);
+      }, false);
+    } else {
+      // non-app version
+      setTimeout(function(){ window.location = "ol3/index.html"}, 2000);
+    }
+
+    function setup()
+    {
+      /* var reloadbutton = document.querySelector("#reloadbutton");
+      reloadbutton.addEventListener("click", function() {
+        window.location = "index.html";
+      }) */
+    }
+
+    </script>
+    </head>
+    <body style="" onload="setup()">
+      <div class="container">
+        <div class="jumbotron">
+          <img src="phenolgyicon.svg" class="img-responsive">
+          <h1>Phenology</h1>
+          <p class="lead">Animate your environment</p>
+        </div>
+        <div class="row marketing">
+          <div class="col-xs-12">
+            <p>
+          </div>
+        </div>
+ <!--<button id="reloadbutton" class="btn">Reload</button> -->
+
+    </body>
+</html>

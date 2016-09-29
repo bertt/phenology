@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Register User</title>
+    <meta name="description" content="Locophoto and timelapse app">
+    <meta http-equiv="content-type" content="text/html; charset=UTF8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" href="favicon.ico" type="image/ico">
+    <!-- link rel="stylesheet" href="http://openlayers.org/en/v3.11.2/css/ol.css" type="text/css"> -->
+    <!-- link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.0.1/css/font-awesome.css" type="text/css"> -->
+
+    <script src="config.js"></script>
+    <script src="validateuser.js"></script>
+    <!-- script src="photoapp.js"></script -->
+
+    <!-- Bootstrap core CSS -->
+    <link href="bootstrap.min.css" rel="stylesheet">
+    <link href="jumbotron-narrow.css" rel="stylesheet">
+
+<style>
+
+</style>
+
+<script>
+function isValidEmail(email) {
+  var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+  return re.test(email.trim());
+}
+
+function isValidCode(code) {
+  var re = /^([0-9]{5})$/;
+  return re.test(code.trim());
+}
+
+
+function emailValidationCode(email)
+{
+  var xhr = new XMLHttpRequest();
+  var formData = 'email=' + encodeURIComponent(email);
+  xhr.open("POST", server+"/photoserver/validatemail");
+  xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");
+  var status = document.querySelector('#mailstatus');
+  status.innerHTML = "sending mail..."
+  xhr.onreadystatechange = function (event) {
+     if (xhr.readyState === 4) {
+         if (xhr.status === 200) {
+           status.innerHTML = xhr.responseText;
+           localStorage.email = email;
+           status.innerHTML = "mail sent, please check your email..."
+         } else {
+           status.innerHTML = "Error" + xhr.statusText;
+         }
+     }
+  };
+  xhr.send(formData);
+}
+
+function validateuser(code, callback)
+{
+  var xhr = new XMLHttpRequest();
+  var formData = 'email=' + encodeURIComponent(localStorage.email) + '&validationcode=' + encodeURIComponent(code) + '&deviceid=' + encodeURIComponent(localStorage.deviceid) + '&devicehash=' + encodeURIComponent(localStorage.devicehash);
+  xhr.open("POST", server+"/photoserver/validateuser");
+  xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");
+  xhr.onreadystatechange = function (event) {
+     if (xhr.readyState === 4) {
+         if (xhr.status === 200) {
+           if (xhr.responseText.length != 32) {
+              callback ("Validation failed: " + xhr.responseText);
+           } else {
+             localStorage.hash = xhr.responseText;
+             callback (null, "Validation ok!");
+           }
+         } else {
+            callback ("Request error, http status: " + xhr.status + ", statusText: " + xhr.statusText);
+         }
+     }
+  };
+  xhr.send(formData);
+}
+
+function checkValidationCode(code)
+{
+  var status = document.querySelector('#verifystatus');
+  status.innerHTML = "validating..."
+
+  validateuser(code, function(err, result){
+    if (err) {
+      status.innerHTML = err;
+    } else {
+      // ok
+      status.innerHTML = result;
+      var mailstatus = document.querySelector('#mailstatus');
+      mailstatus.innerHTML = localStorage.email + " registered";
+    }
+  });
+}
+
+function checkuser(callback)
+{
+  var xhr = new XMLHttpRequest();
+  if (localStorage.email) {
+    localStorage.email = localStorage.email.trim().toLowerCase();
+  }
+  var formData = 'email=' + encodeURIComponent(localStorage.email) + '&hash=' + encodeURIComponent(localStorage.hash) + '&deviceid=' + encodeURIComponent(localStorage.deviceid) + "&devicehash=" + encodeURIComponent(localStorage.devicehash);
+  xhr.open("POST", server+"/photoserver/checkuser");
+  xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");
+  // xhr.responseType = 'json'; // DOES NOT WORK ON ANDROID 4.4!
+  xhr.onreadystatechange = function (event) {
+     if (xhr.readyState === 4) {
+         if (xhr.status === 200) {
+           var result = JSON.parse(xhr.responseText);
+           if (result.error) {
+             callback("Error", result.error);
+           } else {
+             if (result.knownuser) {
+               callback(null, true);
+             } else {
+               callback(null, false);
+             }
+           }
+         } else {
+            callback ("Request error, http status: " + xhr.status + ", statusText: " + xhr.statusText);
+         }
+     }
+  };
+  xhr.send(formData);
+}
+
+
+function setupForm()
+{
+  sendbutton = document.getElementById("sendbutton");
+  mailfield = document.getElementById('email');
+  var mailstatus = document.querySelector('#mailstatus');
+
+  sendbutton.addEventListener('click', function() {
+    if (this.classList.contains('disabled')) {
+      return;
+    }
+    var email = mailfield.value.trim().toLowerCase();
+    localStorage.email = email; // store email address
+    emailValidationCode(email);
+  })
+
+  mailfield.addEventListener('input', function() {
+    var address = mailfield.value;
+    mailstatus.innerHTML = "";
+    if (isValidEmail(address)) {
+      sendbutton.classList.remove("disabled");
+    } else {
+      sendbutton.classList.add("disabled");
+    }
+  });
+
+  // set email address if known
+  if (localStorage.email) {
+    mailfield.value = localStorage.email;
+    if (isValidEmail(mailfield.value)) {
+      sendbutton.classList.remove("disabled");
+    } else {
+      sendbutton.classList.add("disabled");
+    }
+  }
+
+  var verifybutton = document.getElementById("verifybutton");
+  var codefield = document.getElementById('code');
+
+  verifybutton.addEventListener('click', function() {
+    if (this.classList.contains('disabled')) {
+      return;
+    }
+    localStorage.email = mailfield.value.trim().toLowerCase();
+    var code = codefield.value.trim().toLowerCase();
+    checkValidationCode(code);
+  })
+
+
+  codefield.addEventListener('input', function() {
+    if (sendbutton.classList.contains('disabled')) {
+      // email address not valid, erase any code
+      codefield.value = "";
+    } else {
+      var code = codefield.value;
+      if (isValidCode(code)) {
+        verifybutton.classList.remove("disabled");
+      } else {
+        verifybutton.classList.add("disabled");
+      }
+    }
+  });
+
+  if (localStorage.email && localStorage.hash) {
+    checkuser(function(err, result){
+      if (!err) {
+        if (result) {
+          mailstatus.innerHTML = localStorage.email + " is currently registered on this device";
+        } else {
+          mailstatus.innerHTML = localStorage.email + " not yet registered, please enter verification code"
+        }
+      } else {
+        mailstatus.innerHTML = err + result;
+      }
+    });
+  }
+
+}
+
+</script>
+</head>
+<body onload="setupForm()">
+
+  <div class="container">
+    <div class="jumbotron">
+      <h1>Register User</h1>
+      <p class="lead"></p>
+    </div>
+
+    <div class="panel panel-default">
+      <div class="panel-body form-group">
+          <label for="usr">Email:</label>
+            <input type="text" class="form-control" id="email" placeholder="email address" autocapitalize="off">
+              <span class="help-block">Enter your email address, a verification code will be sent</span>
+              <p><button id="sendbutton" type="button" class="btn btn-primary disabled">Send email</button>
+              <div id="mailstatus"></div>
+      </div>
+    </div>
+
+    <div class="panel panel-default">
+      <div class="panel-body form-group">
+          <label for="usr">Verification code:</label>
+            <input type="password" class="form-control" id="code" placeholder="verification code">
+              <span class="help-block">Enter the validation code, sent to your email address</span>
+              <p><button id="verifybutton" type="button" class="btn btn-primary disabled">Verify code</button>
+              <div id="verifystatus"></div>
+      </div>
+    </div>
+
+  </div> <!-- /container -->
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Locophoto</title>
+    <meta name="description" content="Locophoto and timelapse app">
+    <meta http-equiv="content-type" content="text/html; charset=UTF8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="bootstrap.min.css" type="text/css">
+<script src="config.js"></script>
+<script src="validateuser.js"></script>
+</head>
+<body onload="setupForm()">
+  <div class="container">
+  <div class="row">
+  <div class="col-sm-4">
+  <div class="form-group">
+  <label for="usr">Code:</label>
+  <input type="text" class="form-control" id="validationcode" placeholder="validation code">
+  <span class="help-block">Enter the validation code that was mailed to you</span>
+</div>
+</div>
+</div>
+<div class="row">
+  <div class="col-sm-4">
+    <button id="skipbutton" type="button" class="btn btn-danger">Later</button>
+    <button id="savebutton" type="button" class="btn btn-primary disabled">OK</button>
+  </div>
+</div>
+<div class="row">
+  <div class="col-sm-4">
+    <div id="status"></div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

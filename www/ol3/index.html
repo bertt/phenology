@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Locophoto</title>
+    <meta name="description" content="Locophoto and timelapse app">
+    <meta http-equiv="content-type" content="text/html; charset=UTF8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="icon" href="favicon.ico" type="image/ico">
+    <!-- link rel="stylesheet" href="http://openlayers.org/en/v3.11.2/css/ol.css" type="text/css"> -->
+    <link rel="stylesheet" href="openlayers/v3.11.2/css/ol.css" type="text/css">
+    <link rel="stylesheet" href="bootstrap.min.css" type="text/css">
+    <style>
+        body {
+          background-color: rgba(0, 0, 0, 0);
+        }
+        .button {
+            width: 40px;
+            height: 40px;
+            background: #aaa;
+            border-radius: 100%;
+            box-sizing: border-box;
+            outline: none;
+            padding: 8px;
+            position: relative;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            -webkit-user-select: none;
+            user-select: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .icon {
+            width: 24px;
+            height: 24px;
+            background: transparent;
+            fill: white;
+        }
+        .menuicon {
+          width: 24px;
+          height: 24px;
+          background: transparent;
+          stroke: orange;
+          fill: white;
+          margin-bottom: -5px;
+        }
+
+        .button:hover {
+            box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);
+        }
+
+        .button:active {
+            /* background: orange;*/
+        }
+
+        .active {
+            background: orange;
+        }
+
+        .white {
+            background: white;
+        }
+
+        #mapcontainer {
+            /* for map, buttons, info etc */
+            background-color: white;
+            position: absolute;
+            height: 100%;
+            overflow: hidden;
+            top: 0px;
+            left: 0px;
+            right: 0px;
+            bottom: 0px;
+        }
+
+        #map {
+            height: 100%;
+            position: absolute;
+            overflow: hidden;
+            left: 0px;
+            right: 0px;
+            bottom: 0px;
+            top: 0px;
+        }
+        #photopopup {
+          position: relative;
+          overflow: hidden;
+          width: 200px;
+          height: 200px;
+          background-color: white;
+          border: 1px solid black;
+        }
+        #info-camerabutton {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+        }
+
+        #camera-altbutton {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+        }
+
+        #camerabutton {
+            position: fixed;
+            bottom: 10px;
+            right: 60px;
+            display: none;
+        }
+
+
+        #camera-frontbutton {
+            position: fixed;
+            bottom: 10px;
+            right: 110px;
+            display: none;
+        }
+
+        #camera-rearbutton {
+            position: fixed;
+            bottom: 10px;
+            right: 160px;
+            display: none;
+        }
+
+        #add-a-photobutton {
+            position: fixed;
+            bottom: 10px;
+            right: 210px;
+            display: none;
+        }
+
+        #add-to-photosbutton {
+            position: fixed;
+            bottom: 10px;
+            right: 260px;
+            display: none;
+        }
+
+        #my-locationbutton {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+        }
+
+        #infobutton {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+        }
+
+        #info-outlinebutton {
+            position: fixed;
+            top: 10px;
+            left: 60px;
+            display: none;
+        }
+
+        #menubutton {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+        }
+
+        #layersbutton {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+        }
+
+        #help-outlinebutton {
+            position: fixed;
+            top: 10px;
+            right: 60px;
+            display: none;
+        }
+
+        #infobox {
+            position: fixed;
+            top: 10px;
+            left: 60px;
+            background-color: white;
+            color: red;
+        }
+
+        #camerabackground {
+            display: none;
+            height: 100%;
+            position: fixed;
+            overflow: hidden;
+            left: 0px;
+            right: 0px;
+            bottom: 0px;
+            top: 0px;
+            margin: 4px;
+            border: 1px solid yellow;
+            background-color: rgba(0,0,0,0);
+        }
+        #caminfo {
+            position: fixed;
+            left: 10px;
+            top: 80px;
+            color: yellow;
+        }
+        #overlaypicture {
+          position: fixed;
+          left: 0px;
+          top: 0px;
+          width: 100%;
+          heigt: 100%;
+          opacity: 0.5;
+        }
+        #takephotobutton {
+            position: fixed;
+            left: 50%;
+            margin-left: 30px;
+            bottom: 50px;
+            background-color: green;
+        }
+        #uploadphotobutton {
+          position: fixed;
+          left: 50%;
+          margin-left: 30px;
+          bottom: 50px;
+          background-color: green;
+        }
+        #retakephotobutton {
+          position: fixed;
+          left: 50%;
+          margin-left: 90px;
+          bottom: 50px;
+          background-color: orange;
+        }
+        #cancelphotobutton {
+            position: fixed;
+            left: 50%;
+            bottom: 50px;
+            margin-left: -30px;
+            background-color: red;
+        }
+        #layerchooser {
+            display: none;
+            position: fixed;
+            top: 10px;
+            right: 60px;
+        }
+        #popupmenu {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 60px;
+        }
+        .shiftedleft {
+          transform: translate(-30px, 0);
+        }
+        #originalPicture, #previewPicture {
+            position: fixed;
+            left: 10px;
+            top: 10px;
+        }
+        #legendhorizontal {
+          position: fixed;
+          /* width: 365px;
+          height: 34px; */
+          margin-left: -180px;
+          left: 50%;
+          bottom: 10px;
+          border: 1px white solid;
+        }
+        #legendvertical {
+          position: fixed;
+          /*
+          width: 35px;
+          height: 401px; */
+          left: 10px;
+          top: 50%;
+          margin-top: -201px;
+          border: 1px white solid;
+        }
+        .legendleft {
+          position: absolute;
+          left: 1px;
+          line-height: 34px;
+        }
+        .legendright {
+          position: absolute;
+          right: 1px;
+          line-height: 34px
+        }
+        .legendtop {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 34px;
+          text-align: center;
+        }
+        .legendtoprotated {
+          position: absolute;
+          top: 0;
+          left: 0;
+          height: 34px;
+          width: auto;
+          text-align: auto;
+          line-height: 34px;
+          transform: rotate(90deg) translate(2px,-34px);
+          transform-origin: 0 0;
+        }
+        .legendbottom {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 34px;
+          text-align: center;
+        }
+        .legendbottomrotated {
+          position: absolute;
+          bottom: 0px;
+          left: auto;
+          width: auto;
+          right: 0px;
+          height: 34px;
+          line-height: 34px;
+          text-align: right;
+          transform: rotate(90deg) translate(-2px, 34px);
+          transform-origin: 100% 34px;
+
+        }
+        .legendwhite {
+          color: white;
+        }
+        #fullscreenphotoframe {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          background-color: black;
+        }
+        #fullscreenphotoframe img {
+          max-height: 100%;
+          max-width: 100%;
+          width: auto;
+          height: auto;
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          margin: auto;
+        }
+        .centerimagehorizontal img {
+          display: block;
+          top: 0;
+          height: 100%;
+          margin-left: auto;
+          margin-right: auto;
+        }
+        .centerimagevertical img {
+          display: block;
+          left: 0;
+          width: 100%;
+          margin-top: auto;
+          margin-bottom: auto;
+        }
+        .visible {
+            display: block !important;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+    <!--script src="http://openlayers.org/en/v3.11.2/build/ol.js"></script>
+    <script src="http://cdnjs.cloudflare.com/ajax/libs/proj4js/2.3.6/proj4.js"></script -->
+    <script src="openlayers/v3.11.2/build/ol.js"></script>
+    <script src="proj4js/2.3.6/proj4.js"></script>
+    <!--
+    <script src="jquery.1.12.4.min.js"></script>
+    <script src="bootstrap.min.js"></script>
+    -->
+
+    <script src="config.js"></script>
+    <script src="photoapp.js"></script>
+
+</head>
+
+<body onload="setup();">
+    <!-- definition of icons -->
+    <svg style="display: none;">
+        <symbol id="my-location" viewBox="0 0 24 24">
+            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z" />
+        </symbol>
+        <symbol id="add-a-photo" viewBox="0 0 24 24">
+            <path d="M3 4V1h2v3h3v2H5v3H3V6H0V4h3zm3 6V7h3V4h7l1.83 2H21c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V10h3zm7 9c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-3.2-5c0 1.77 1.43 3.2 3.2 3.2s3.2-1.43 3.2-3.2-1.43-3.2-3.2-3.2-3.2 1.43-3.2 3.2z" />
+        </symbol>
+        <symbol id="add-to-photos" viewBox="0 0 24 24">
+            <path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9h-4v4h-2v-4H9V9h4V5h2v4h4v2z" />
+        </symbol>
+        <symbol id="info" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+        </symbol>
+        <symbol id="info-outline" viewBox="0 0 24 24">
+            <path d="M11 17h2v-6h-2v6zm1-15C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zM11 9h2V7h-2v2z" />
+        </symbol>
+        <symbol id="camera-front" viewBox="0 0 24 24">
+            <path d="M10 20H5v2h5v2l3-3-3-3v2zm4 0v2h5v-2h-5zM12 8c1.1 0 2-.9 2-2s-.9-2-2-2-1.99.9-1.99 2S10.9 8 12 8zm5-8H7C5.9 0 5 .9 5 2v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zM7 2h10v10.5c0-1.67-3.33-2.5-5-2.5s-5 .83-5 2.5V2z" />
+        </symbol>
+        <symbol id="camera-rear" viewBox="0 0 24 24">
+            <path d="M10 20H5v2h5v2l3-3-3-3v2zm4 0v2h5v-2h-5zm3-20H7C5.9 0 5 .9 5 2v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V2c0-1.1-.9-2-2-2zm-5 6c-1.11 0-2-.9-2-2s.89-2 1.99-2 2 .9 2 2C14 5.1 13.1 6 12 6z" />
+        </symbol>
+        <symbol id="camera" viewBox="0 0 24 24">
+            <path d="M9.4 10.5l4.77-8.26C13.47 2.09 12.75 2 12 2c-2.4 0-4.6.85-6.32 2.25l3.66 6.35.06-.1zM21.54 9c-.92-2.92-3.15-5.26-6-6.34L11.88 9h9.66zm.26 1h-7.49l.29.5 4.76 8.25C21 16.97 22 14.61 22 12c0-.69-.07-1.35-.2-2zM8.54 12l-3.9-6.75C3.01 7.03 2 9.39 2 12c0 .69.07 1.35.2 2h7.49l-1.15-2zm-6.08 3c.92 2.92 3.15 5.26 6 6.34L12.12 15H2.46zm11.27 0l-3.9 6.76c.7.15 1.42.24 2.17.24 2.4 0 4.6-.85 6.32-2.25l-3.66-6.35-.93 1.6z" />
+        </symbol>
+        <symbol id="camera-alt" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3.2" />
+            <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z" />
+        </symbol>
+        <symbol id="help" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" />
+        </symbol>
+        <symbol id="help-outline" viewBox="0 0 24 24">
+            <path d="M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z" />
+        </symbol>
+        <symbol id="check-circle">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+        </symbol>
+        <symbol id="done">
+          <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+        </symbol>
+        <symbol id="redo">
+          <path d="M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z"/>
+        </symbol>
+        <symbol id="cancel">
+            <path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z" />
+        </symbol>
+        <symbol id="layers">
+          <path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>
+        </symbol>
+        <symbol id="settings">
+          <path d="M19.43 12.98c.04-.32.07-.64.07-.98s-.03-.66-.07-.98l2.11-1.65c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64l2.11 1.65c-.04.32-.07.65-.07.98s.03.66.07.98l-2.11 1.65c-.19.15-.24.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.59 1.69-.98l2.49 1c.23.09.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.65zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/>
+        </symbol>
+        <symbol id="menu">
+          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+        </symbol>
+        <symbol id="photo-library">
+          <path d="M22 16V4c0-1.1-.9-2-2-2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2zm-11-4l2.03 2.71L16 11l4 5H8l3-4zM2 6v14c0 1.1.9 2 2 2h14v-2H4V6H2z"/>
+        </symbol>
+    </svg>
+    <div id="mapcontainer">
+    <div id="map"></div>
+    <div id="photopopup" class="hidden">
+      <span id="info-camerabutton" class="button active" title="camera">
+          <svg class="icon"><use xlink:href="#add-a-photo" /></svg>
+      </span>
+    </div>
+        <span id="my-locationbutton" class="button active" title="show your location in center of map">
+<svg class="icon"><use xlink:href="#my-location" /></svg>
+</span>
+        <span id="camerabutton" class="button" title="camera">
+<svg class="icon"><use xlink:href="#camera" /></svg>
+</span>
+        <span id="camera-altbutton" class="button active" title="camera alt">
+<svg class="icon"><use xlink:href="#camera-alt" /></svg>
+</span>
+        <span id="add-a-photobutton" class="button" title="add a photo">
+<svg class="icon"><use xlink:href="#add-a-photo" /></svg>
+</span>
+        <span id="add-to-photosbutton" class="button" title="add to photos">
+<svg class="icon"><use xlink:href="#add-to-photos" /></svg>
+</span>
+<!--        <span id="infobutton" class="button active" title="info">
+<svg class="icon"><use xlink:href="#info" /></svg>
+</span> -->
+        <span id="info-outlinebutton" class="button" title="info">
+<svg class="icon"><use xlink:href="#info-outline" /></svg>
+</span>
+        <span id="menubutton" class="button active" title="menu">
+<svg class="icon"><use xlink:href="#menu" /></svg>
+</span>
+        <span id="layersbutton" class="button active" title="map layers">
+<svg class="icon"><use xlink:href="#layers" /></svg>
+</span>
+        <span id="help-outlinebutton" class="button" title="help outline">
+<svg class="icon"><use xlink:href="#help-outline" /></svg>
+</span>
+        <span id="camera-frontbutton" class="button" title="camera front">
+<svg class="icon"><use xlink:href="#camera-front" /></svg>
+</span>
+        <span id="camera-rearbutton" class="button" title="camera rear">
+<svg class="icon"><use xlink:href="#camera-rear" /></svg>
+</span>
+        <span id="infobox"></span>
+</div>
+
+<!-- #mapcontainer -->
+<div id="camerabackground">
+    <img id="overlaypicture" class="hidden" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="></img>
+    <span id="takephotobutton" class="button active" title="take photo">
+      <svg class="icon"><use xlink:href="#camera-alt" /></svg>
+    </span>
+    <span id="uploadphotobutton" class="button active hidden" title="upload photo">
+      <svg class="icon"><use xlink:href="#done" /></svg>
+    </span>
+    <span id="cancelphotobutton" class="button active" title="cancel photo">
+      <svg class="icon"><use xlink:href="#cancel" /></svg>
+    </span>
+    <span id="retakephotobutton" class="button active hidden" title="retake photo">
+      <svg class="icon"><use xlink:href="#redo" /></svg>
+    </span>
+    <img id='originalPicture' class="hidden" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="></img>
+    <!-- img id='originalPicture' class="hidden" src="map.png"></img-->
+    <img id='previewPicture' class="hidden" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs="></img>
+    <canvas id="picturecanvas" class="hidden"></canvas>
+    <span id="caminfo"></span>
+</div>
+
+<div id="layerchooser">
+  <ul class="list-group">
+    <li class="list-group-item disabled">Choose layer</li>
+    <li layer="" class="list-group-item list-group-item-warning">Background map only</li>
+    <li layer="startofseason" class="list-group-item">Start of season</li>
+    <li layer="vegetationtrend" class="list-group-item">Vegetation trend</li>
+    <li layer="temperature" class="list-group-item">Yesterday's day temperature</li>
+  </ul>
+</div>
+
+<div id="popupmenu">
+  <ul class="list-group">
+    <li class="list-group-item disabled">Menu</li>
+    <li ref="help" class="list-group-item "><svg class="menuicon"><use xlink:href="#help" /></svg> Help</li>
+    <li ref="info" class="list-group-item"><svg class="menuicon"><use xlink:href="#info" /></svg> About</li>
+    <li ref="gallery" class="list-group-item"><svg class="menuicon"><use xlink:href="#photo-library" /></svg> Manage your photos</li>
+    <li class="list-group-item disabled"><svg class="menuicon"><use xlink:href="#settings" /></svg> Settings</li>
+    <li ref="language" class="list-group-item text-right">Language</li>
+    <li ref="user" class="list-group-item text-right">Register user</li>
+  </ul>
+</div>
+
+
+<div id="legendvertical" class="hidden">
+  <span class="legendtop legendmin legendwhite"></span><span class="legendbottom legendmax legendwhite"></span>
+<img src="temperaturev.png" id="legendimagev" width="35" height="401">
+</div>
+<div id="legendhorizontal" class="hidden">
+  <span class="legendleft legendmin legendwhite"></span><span class="legendright legendmax legendwhite"></span>
+<img src="temperatureh.png" id="legendimageh" width="365" height="34">
+</div>
+<div id="fullscreenphotoframe" class="hidden">
+  <img id="fullscreenphoto" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=">
+</div>
+
+<script type="text/javascript" src="../cordova.js"></script>
+</body>
+
+</html>

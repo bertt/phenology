@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Locophoto</title>
+    <meta name="description" content="Locophoto and timelapse app">
+    <meta http-equiv="content-type" content="text/html; charset=UTF8">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="bootstrap.min.css" type="text/css">
+<script src="config.js"></script>
+<script>
+  function isValidEmail(email) {
+    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email.trim());
+  }
+
+  function emailValidationCode(email)
+  {
+    var xhr = new XMLHttpRequest();
+    var formData = 'email=' + encodeURIComponent(email);
+    xhr.open("POST", server+"/photoserver/validatemail");
+    xhr.setRequestHeader("Content-Type","application/x-www-form-urlencoded; charset=UTF-8");
+    var status = document.querySelector('#mailstatus');
+    status.innerHTML = "mail versturen..."
+    xhr.onreadystatechange = function (event) {
+       if (xhr.readyState === 4) {
+           if (xhr.status === 200) {
+             status.innerHTML = xhr.responseText;
+             localStorage.email = email;
+             window.location = "validateuser.html";
+           } else {
+              status.innerHTML = "Error" + xhr.statusText;
+              setTimeout(function (){
+                localStorage.hash = "skipped"
+                window.location = "index.html"
+              }, 5000);
+           }
+       }
+    };
+    xhr.send(formData);
+  }
+
+  function setupForm()
+  {
+    savebutton = document.getElementById("savebutton");
+    mailfield = document.getElementById('email');
+    savebutton.addEventListener('click', function() {
+      if (this.classList.contains('disabled')) {
+        return;
+      }
+      var email = mailfield.value.trim().toLowerCase();
+      localStorage.email = email;
+      emailValidationCode(email);
+    })
+
+    mailfield.addEventListener('input', function() {
+      var address = mailfield.value;
+      if (isValidEmail(address)) {
+        savebutton.classList.remove("disabled");
+      } else {
+        savebutton.classList.add("disabled");
+      }
+    });
+
+    // set email address if known
+    if (localStorage.email) {
+      mailfield.value = localStorage.email;
+      if (isValidEmail(mailfield.value)) {
+        savebutton.classList.remove("disabled");
+      } else {
+        savebutton.classList.add("disabled");
+      }
+    }
+  }
+</script>
+</head>
+<body onload="setupForm()">
+  <div class="container">
+  <div class="row">
+  <div class="col-sm-4">
+  <div class="form-group">
+  <label for="usr">Email:</label>
+  <input type="text" class="form-control" id="email" placeholder="email adres">
+  <span class="help-block">Voer hier je emailadres in. Na verificatie kun je hiermee je foto's publiceren en beheren</span>
+</div>
+</div>
+</div>
+<div class="row">
+  <div class="col-sm-4">
+    <button id="savebutton" type="button" class="btn btn-primary disabled">OK</button>
+  </div>
+</div>
+<div class="row">
+  <div class="col-sm-4">
+    <div id="mailstatus"></div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>
