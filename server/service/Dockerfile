@@ -1,0 +1,7 @@
+FROM node:argon
+EXPOSE 3100
+RUN mkdir -p /usr/src/app
+WORKDIR /usr/src/app
+COPY . /usr/src/app
+RUN npm install
+CMD [ "node", "photoserver.js" ]

@@ -1,0 +1,19 @@
+version: '2'
+
+services:
+
+    phenology-db:
+
+        image: bertt/phenology-db
+
+        ports:
+
+            - "5432:5432"
+
+    phenology-service:
+
+        image: bertt/phenology-service
+
+        ports:
+
+            - "3100:3100"
