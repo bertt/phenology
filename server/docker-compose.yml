@@ -11,11 +11,11 @@ services:
             - "5432:5432"
             
         environment:
-            - ENV POSTGRES_USER=geodb
+            - POSTGRES_USER=geodb
             
-            - ENV POSTGRES_PASSWORD=geodb
+            - POSTGRES_PASSWORD=geodb
             
-            - ENV POSTGRES_DB=locophoto
+            - POSTGRES_DB=locophoto
             
     phenology-service:
 
