@@ -9,7 +9,14 @@ services:
         ports:
 
             - "5432:5432"
-
+            
+        environment:
+            - ENV POSTGRES_USER=geodb
+            
+            - ENV POSTGRES_PASSWORD=geodb
+            
+            - ENV POSTGRES_DB=locophoto
+            
     phenology-service:
 
         image: bertt/phenology-service
