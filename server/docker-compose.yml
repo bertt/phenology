@@ -10,13 +10,6 @@ services:
 
             - "5432:5432"
             
-        environment:
-            - POSTGRES_USER:geodb
-            
-            - POSTGRES_PASSWORD:geodb
-            
-            - POSTGRES_DB:locophoto
-            
     phenology-service:
 
         image: bertt/phenology-service
